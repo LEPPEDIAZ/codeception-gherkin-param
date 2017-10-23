@@ -58,7 +58,8 @@ class GherkinParam extends \Codeception\Platform\Extension
             return $this->getValueFromArray($arg);
         }
 
-        return Fixtures::get($arg);
+        $fixtures = new Fixtures();
+        return $fixtures::get($arg);
     }
 
     /**
@@ -131,9 +132,9 @@ class GherkinParam extends \Codeception\Platform\Extension
      * @codeCoverageIgnore
      * @ignore Codeception specific
      */
-    public function beforeSuite(\Codeception\Event\SuiteEvent $e)
+    public function beforeSuite(\Codeception\Event\SuiteEvent $event)
     {
-        self::$suiteConfig = $e->getSettings();
+        self::$suiteConfig = $event->getSettings();
     }
 
     /**
@@ -141,9 +142,9 @@ class GherkinParam extends \Codeception\Platform\Extension
      *
      * @param \Codeception\Event\StepEvent $e
      */
-    public function beforeStep(\Codeception\Event\StepEvent $e)
+    public function beforeStep(\Codeception\Event\StepEvent $event)
     {
-        $step = $e->getStep();
+        $step = $event->getStep();
         // access to the protected property using reflection
         $refArgs = new ReflectionProperty(get_class($step), 'arguments');
         // change property accessibility to public
