@@ -30,37 +30,35 @@ class GherkinParam extends \Codeception\Platform\Extension
    */
   private static $suiteConfig;
 
-  /**
-   * @var array RegExp for parsing steps
-   */
-  private static $regEx = [
-    'match'  => '/^{{[A-z0-9_:-]+}}$/',
-    'filter' => '/[{}]/',
-    'config' => '/(?:^config)?:([A-z0-9_-]+)+(?=:|$)/',
-    'array'  => '/^(?P<var>[A-z0-9_-]+)(?:\[(?P<key>.+)])$/'
-  ];
+  const REGEX_PARAM = '/^{{[A-z0-9_:-]+}}$/';
+  const REGEX_FILTER = '/[{}]/';
+  const REGEX_CONFIG = '/(?:^config)?:([A-z0-9_-]+)+(?=:|$)/';
+  const REGEX_ARRAY = '/^(?P<var>[A-z0-9_-]+)(?:\[(?P<key>.+)])$/';
 
   /**
    * Parse param and replace {{.*}} by its Fixtures::get() value if exists
    *
    * @param string $param
    *
-   * @return mixed|string Returns parameter's value if exists, else parameter's name
+   * @return mixed|string Return parameter's value if exists, else parameter's name
    */
   protected function getValueFromParam($param)
   {
-    if (preg_match(self::$regEx['match'], $param)) {
-      $arg = preg_filter(self::$regEx['filter'], '', $param);
-      if (preg_match(self::$regEx['config'], $arg)) {
-        return $this->getValueFromConfig($arg);
-      } elseif (preg_match(self::$regEx['array'], $arg)) {
-        return $this->getValueFromArray($arg);
-      } else {
-        return Fixtures::get($arg);
-      }
-    } else {
+    if (!preg_match(self::REGEX_PARAM, $param)) {
       return $param;
     }
+
+    $arg = preg_filter(self::REGEX_FILTER, '', $param);
+
+    if (preg_match(self::REGEX_CONFIG, $arg)) {
+      return $this->getValueFromConfig($arg);
+    }
+
+    if (preg_match(self::REGEX_ARRAY, $arg)) {
+      return $this->getValueFromArray($arg);
+    }
+
+    return Fixtures::get($arg);
   }
 
   /**
@@ -68,22 +66,21 @@ class GherkinParam extends \Codeception\Platform\Extension
    *
    * @param string $param
    *
-   * @return mixed|null Returns parameter's value if exists, else null
+   * @return mixed|null Return parameter's value if exists, else null
    */
   protected function getValueFromConfig($param)
   {
     $value = null;
     $config = self::$suiteConfig;
 
-    preg_match_all(self::$regEx['config'], $param, $args, PREG_PATTERN_ORDER);
+    preg_match_all(self::REGEX_CONFIG, $param, $args, PREG_PATTERN_ORDER);
     foreach ($args[1] as $arg) {
       if (array_key_exists($arg, $config)) {
         $value = $config[$arg];
-        if (is_array($value)) {
-          $config = $value;
-        } else {
+        if (!is_array($value)) {
           break;
         }
+        $config = $value;
       }
     }
     return $value;
@@ -94,13 +91,13 @@ class GherkinParam extends \Codeception\Platform\Extension
    *
    * @param string $param
    *
-   * @return mixed|null Returns parameter's value if exists, else null
+   * @return mixed|null Return parameter's value if exists, else null
    */
   protected function getValueFromArray($param)
   {
     $value = null;
 
-    preg_match_all(self::$regEx['array'], $param, $args);
+    preg_match_all(self::REGEX_ARRAY, $param, $args);
     $array = Fixtures::get($args['var'][0]);
     if (array_key_exists($args['key'][0], $array)) {
         $value = $array[$args['key'][0]];
@@ -136,26 +133,40 @@ class GherkinParam extends \Codeception\Platform\Extension
     // retrieve 'arguments' value
     $args = $refArgs->getValue($step);
     foreach ($args as $index => $arg) {
-      if (is_string($arg)) {
-      // case if arg is a string
-      // e.g. I see "{{param}}"
-        $args[$index] = $this->getValueFromParam($arg);
-      } elseif (is_a($arg, '\Behat\Gherkin\Node\TableNode')) {
-      // case if arg is a table
-      // e.g. I see :
-      //  | paramater |
-      //  | {{param}} |
-        $table = [];
-        foreach ($arg->getRows() as $i => $row) {
-          foreach ($row as $j => $cell) {
-              $table[$i][$j] = $this->getValueFromParam($cell);
-          }
-        }
-        $args[$index] = new TableNode($table);
+      switch (true) {
+        // case I see "{{param}}"
+        case (is_string($arg)):
+          $args[$index] = $this->getValueFromParam($arg);
+          break;
+        // case Gherkin table
+        //  | paramater |
+        //  | {{param}} |
+        case (is_a($arg, '\Behat\Gherkin\Node\TableNode')):
+          $tableNodeRows = $arg->getRows();
+          $args[$index] = $this->getValueFromTableNode($tableNodeRows);
+          break;
       }
     }
     // set new arguments value
     $refArgs->setValue($step, $args);
+  }
+
+  /**
+   * Retrieve param value from Gherkin table row
+   *
+   * @param array $tableNodeRows
+   *
+   * @return \Behat\Gherkin\Node\TableNode Return table node valued
+   */
+  protected function getValueFromTableNode(array $tableNodeRows)
+  {
+    $table = [];
+    foreach ($tableNodeRows as $i => $row) {
+      foreach ($row as $j => $cell) {
+        $table[$i][$j] = $this->getValueFromParam($cell);
+      }
+    }
+    return new TableNode($table);
   }
 
 }
