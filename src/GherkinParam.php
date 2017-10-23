@@ -9,10 +9,6 @@
  */
 namespace Codeception\Extension;
 
-use Codeception\Util\Fixtures as Fixtures;
-use Behat\Gherkin\Node\TableNode as TableNode;
-use ReflectionProperty;
-
 class GherkinParam extends \Codeception\Platform\Extension
 {
     /**
@@ -34,6 +30,12 @@ class GherkinParam extends \Codeception\Platform\Extension
     const REGEX_FILTER = '/[{}]/';
     const REGEX_CONFIG = '/(?:^config)?:([A-z0-9_-]+)+(?=:|$)/';
     const REGEX_ARRAY = '/^(?P<var>[A-z0-9_-]+)(?:\[(?P<key>.+)])$/';
+
+    private function getFixtureValue($val)
+    {
+        $fixtures = new \Codeception\Util\Fixtures();
+        return $fixtures::get($val);
+    }
 
     /**
      * Parse param and replace {{.*}} by its Fixtures::get() value if exists
@@ -58,8 +60,7 @@ class GherkinParam extends \Codeception\Platform\Extension
             return $this->getValueFromArray($arg);
         }
 
-        $fixtures = new Fixtures();
-        return $fixtures::get($arg);
+        return $this->getFixtureValue($arg);
     }
 
     /**
@@ -99,8 +100,7 @@ class GherkinParam extends \Codeception\Platform\Extension
         $value = null;
 
         preg_match_all(self::REGEX_ARRAY, $param, $args);
-        $fixtures = new Fixtures();
-        $array = $fixtures::get($args['var'][0]);
+        $array = $this->getFixtureValue($args['var'][0]);
         if (array_key_exists($args['key'][0], $array)) {
             $value = $array[$args['key'][0]];
         }
@@ -112,7 +112,7 @@ class GherkinParam extends \Codeception\Platform\Extension
      *
      * @param array $tableNodeRows
      *
-     * @return \Behat\Gherkin\Node\TableNode Return table node valued
+     * @return Behat\Gherkin\Node\TableNode Return table node valued
      */
     protected function getValueFromTableNode(array $tableNodeRows)
     {
@@ -122,7 +122,7 @@ class GherkinParam extends \Codeception\Platform\Extension
                 $table[$i][$j] = $this->getValueFromParam($cell);
             }
         }
-        return new TableNode($table);
+        return new \Behat\Gherkin\Node\TableNode($table);
     }
 
     /**
@@ -147,7 +147,7 @@ class GherkinParam extends \Codeception\Platform\Extension
     {
         $step = $event->getStep();
         // access to the protected property using reflection
-        $refArgs = new ReflectionProperty(get_class($step), 'arguments');
+        $refArgs = new \ReflectionProperty(get_class($step), 'arguments');
         // change property accessibility to public
         $refArgs->setAccessible(true);
         // retrieve 'arguments' value
