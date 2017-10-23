@@ -1,19 +1,25 @@
 language: php
 
-branches:
-  only:
-    - master
-
 php:
   - 5.6
   - 7.0
   - 7.1
+  - 7.2
+  - nightly
+
+matrix:
+  include:
+    - php: 7.1
+      env: COVERAGE=yes
+  allow_failures:
+    - php: 7.2
+    - php: nightly
 
 before_script:
-  - composer install
+  - travis_retry composer install
 
 script:
- - ./vendor/bin/codecept run --coverage-xml
+  - if [[ $COVERAGE == yes ]]; ./vendor/bin/codecept run --coverage-xml; else ./vendor/bin/codecept run; fi
 
 after_script:
-  - ./vendor/bin/coveralls
+  - if [[ $COVERAGE == yes ]]; ./vendor/bin/coveralls; fi
