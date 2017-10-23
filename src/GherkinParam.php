@@ -9,8 +9,8 @@
  */
 namespace Codeception\Extension;
 
-use Codeception\Util\Fixtures;
-use Behat\Gherkin\Node\TableNode;
+use Codeception\Util\Fixtures as Fixtures;
+use Behat\Gherkin\Node\TableNode as TableNode;
 use ReflectionProperty;
 
 class GherkinParam extends \Codeception\Platform\Extension
@@ -19,10 +19,10 @@ class GherkinParam extends \Codeception\Platform\Extension
     * @var array List events to listen to
     */
     public static $events = [
-    //run before any suite
-    'suite.before' => 'beforeSuite',
-    //run before any steps
-    'step.before' => 'beforeStep'
+        //run before any suite
+        'suite.before' => 'beforeSuite',
+        //run before any steps
+        'step.before' => 'beforeStep'
     ];
 
     /**
@@ -99,7 +99,8 @@ class GherkinParam extends \Codeception\Platform\Extension
         $value = null;
 
         preg_match_all(self::REGEX_ARRAY, $param, $args);
-        $array = Fixtures::get($args['var'][0]);
+        $fixtures = new Fixtures();
+        $array = $fixtures::get($args['var'][0]);
         if (array_key_exists($args['key'][0], $array)) {
             $value = $array[$args['key'][0]];
         }
@@ -121,7 +122,7 @@ class GherkinParam extends \Codeception\Platform\Extension
                 $table[$i][$j] = $this->getValueFromParam($cell);
             }
         }
-        return new \Behat\Gherkin\Node\TableNode($table);
+        return new TableNode($table);
     }
 
     /**
@@ -155,15 +156,15 @@ class GherkinParam extends \Codeception\Platform\Extension
             switch (true) {
                 // case I see "{{param}}"
                 case (is_string($arg)):
-                $args[$index] = $this->getValueFromParam($arg);
-                break;
+                    $args[$index] = $this->getValueFromParam($arg);
+                    break;
                 // case Gherkin table
                 //  | paramater |
                 //  | {{param}} |
                 case (is_a($arg, '\Behat\Gherkin\Node\TableNode')):
-                $tableNodeRows = $arg->getRows();
-                $args[$index] = $this->getValueFromTableNode($tableNodeRows);
-                break;
+                    $tableNodeRows = $arg->getRows();
+                    $args[$index] = $this->getValueFromTableNode($tableNodeRows);
+                    break;
             }
         }
         // set new arguments value
