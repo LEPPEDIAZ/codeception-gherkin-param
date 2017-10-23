@@ -3,7 +3,6 @@ language: php
 php:
   - 5.6
   - 7.0
-  - 7.1
   - 7.2
   - nightly
 
@@ -19,7 +18,7 @@ before_script:
   - travis_retry composer install
 
 script:
-  - if [[ $COVERAGE == yes ]]; ./vendor/bin/codecept run --coverage-xml; else ./vendor/bin/codecept run; fi
+  - if [[ $COVERAGE == yes ]]; then ./vendor/bin/codecept run --coverage-xml; else ./vendor/bin/codecept run; fi
 
 after_script:
-  - if [[ $COVERAGE == yes ]]; ./vendor/bin/coveralls; fi
+  - if [[ $COVERAGE == yes ]]; then ./vendor/bin/coveralls; fi
