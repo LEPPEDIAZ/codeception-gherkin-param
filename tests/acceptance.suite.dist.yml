@@ -11,5 +11,12 @@ modules:
     - Asserts
     - Helper\Acceptance
     - Helper\ExtHelper
+    Db:
+            dsn: 'sqlite:./var/cache/test/MarinaGuatemala.sqlite'
+            dump: 'tests/_data/MarinaGuatemala.sql'  
+            populate: true
+            cleanup: true
+            reconnect: true
+
 
 some_param: 42
